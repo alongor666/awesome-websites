@@ -3,174 +3,446 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self'
+            https://unpkg.com
+            https://cdn.tailwindcss.com
+            https://cdn.jsdelivr.net
+            https://cdnjs.cloudflare.com;
+        style-src 'self' 'unsafe-inline'
+            https://cdn.tailwindcss.com
+            https://cdnjs.cloudflare.com;
+        img-src 'self' data: https: http:;
+        font-src 'self' https://cdnjs.cloudflare.com;
+        connect-src 'self' https://generativelanguage.googleapis.com
+            https://www.google.com;
+        frame-src 'self' https://discord.com https://colab.research.google.com;
+        base-uri 'self';
+        form-action 'self';
+        object-src 'none';
+        require-trusted-types-for 'script';
+    ">
     <title>阿龙的数字化作战中心 | Ah Long's OS v5.3</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js" integrity="sha384-dsKF6mTFbcNJ43SlwL16S4PsymmtsPsOYBYCgIpFYXWGpuxleajsS7EusvgAc5/V" crossorigin="anonymous"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" integrity="sha384-948ahk4ZmxYVYOc+rxN1H2gM1EJ2Duhp7uHtZ4WSLkV4Vtx5MUqnV+l7u9B+jFv+" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js" integrity="sha384-vdScihEZCfbPnBQf+lc7LgXUdJVYyhC3yWHUW5C5P5GpHRqVnaM6HJELJxT6IqwM" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.js" integrity="sha384-57VRFGvLpSky5EqUImBJSOkJI+6xYMONZqn8Zh70E+1DyMPpN1vQkaJaN4YqRmln" crossorigin="anonymous"></script>
     
     <style>
         :root {
-            --bg-color: #f8fafc;
-            --sidebar-bg: #ffffff;
-            --card-bg: #ffffff;
-            --text-primary: #0f172a;
-            --primary-color: #3b82f6;
+            /* macOS 颜色系统 */
+            --macos-bg: #f5f5f7;
+            --macos-sidebar-bg: rgba(255, 255, 255, 0.8);
+            --macos-card-bg: rgba(255, 255, 255, 0.9);
+            --macos-text-primary: #1d1d1f;
+            --macos-text-secondary: #6e6e73;
+            --macos-accent: #007aff;
+            --macos-hover: rgba(0, 122, 255, 0.1);
+            --macos-border: rgba(0, 0, 0, 0.1);
+            --macos-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            --macos-blur: blur(20px);
+
+            /* 窗口控制按钮 */
+            --macos-red: #ff5f57;
+            --macos-yellow: #ffbd2e;
+            --macos-green: #28ca42;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(180deg, #f5f5f7 0%, #e8e8ed 100%);
+            color: var(--macos-text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-size: 14px;
+            line-height: 1.5;
         }
 
-        /* 侧边栏设计 */
+        /* macOS 侧边栏 */
         .sidebar {
-            background: var(--sidebar-bg);
-            border-right: 1px solid rgba(0,0,0,0.06);
-            box-shadow: 2px 0 10px rgba(0,0,0,0.01);
+            background: var(--macos-sidebar-bg);
+            backdrop-filter: var(--macos-blur);
+            -webkit-backdrop-filter: var(--macos-blur);
+            border-right: 1px solid var(--macos-border);
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05);
         }
 
         .group-header {
-            font-size: 10px;
-            font-weight: 700;
-            color: #64748b;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--macos-text-secondary);
             text-transform: uppercase;
-            letter-spacing: 0.06em;
-            padding: 18px 16px 6px 16px;
+            letter-spacing: 0.05em;
+            padding: 20px 20px 8px 20px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
-        
-        .group-header i { font-size: 9px; opacity: 0.6; }
 
-        /* 卡片设计 */
+        .group-header i {
+            font-size: 10px;
+            opacity: 0.5;
+        }
+
+        /* macOS 卡片设计 */
         .site-card {
-            background: var(--card-bg);
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            background: var(--macos-card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--macos-border);
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             position: relative;
             overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
-        
+
         .site-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08);
-            border-color: #94a3b8;
-            z-index: 10;
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: var(--macos-shadow);
+            border-color: rgba(0, 122, 255, 0.2);
+            background: rgba(255, 255, 255, 0.95);
         }
 
-        /* 顶部彩色条 */
-        .color-bar { height: 3px; width: 100%; position: absolute; top: 0; left: 0; opacity: 0.9; }
+        /* macOS 彩色指示条 */
+        .color-bar {
+            height: 4px;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
 
-        /* 智能标签 */
+        /* macOS 标签 */
         .badge {
-            font-size: 9px;
-            padding: 1px 5px;
-            border-radius: 4px;
-            font-weight: 600;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-weight: 500;
             display: inline-block;
-            line-height: 1.3;
+            line-height: 1.2;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
         }
-        .badge-core { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; } /* 蓝色：核心 */
-        .badge-doc { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; } /* 绿色：文档 */
-        .badge-vpn { background: #faf5ff; color: #9333ea; border: 1px solid #e9d5ff; } /* 紫色：网络 */
+        .badge-core {
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--macos-accent);
+            border: 1px solid rgba(0, 122, 255, 0.2);
+        }
+        .badge-doc {
+            background: rgba(52, 199, 89, 0.1);
+            color: #34c759;
+            border: 1px solid rgba(52, 199, 89, 0.2);
+        }
+        .badge-vpn {
+            background: rgba(175, 82, 222, 0.1);
+            color: #af52de;
+            border: 1px solid rgba(175, 82, 222, 0.2);
+        }
 
-        /* 滚动条 */
-        .custom-scroll::-webkit-scrollbar { width: 5px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
-        
-        /* 导航选中态 */
+        /* macOS 滚动条 */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(0, 0, 0, 0.3);
+            background-clip: content-box;
+        }
+
+        /* macOS 导航项 */
+        .nav-item {
+            padding: 8px 20px;
+            margin: 2px 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
         .nav-item-active {
-            background-color: #eff6ff;
-            color: var(--primary-color);
+            background: var(--macos-hover);
+            color: var(--macos-accent);
             font-weight: 600;
-            border-right: 3px solid var(--primary-color);
+        }
+
+        .nav-item:hover:not(.nav-item-active) {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* 窗口控制按钮 */
+        .window-controls {
+            display: flex;
+            gap: 8px;
+            padding: 12px 20px;
+        }
+
+        .window-control {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .window-control:hover {
+            opacity: 0.8;
+        }
+
+        .window-control.close {
+            background: var(--macos-red);
+        }
+
+        .window-control.minimize {
+            background: var(--macos-yellow);
+        }
+
+        .window-control.maximize {
+            background: var(--macos-green);
+        }
+
+        /* macOS 搜索框 */
+        .macos-search {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--macos-border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            transition: all 0.3s ease;
+        }
+
+        .macos-search:focus {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: var(--macos-accent);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        /* macOS 按钮样式 */
+        .macos-btn {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--macos-border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .macos-btn:hover {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateY(-1px);
+        }
+
+        .macos-btn-primary {
+            background: var(--macos-accent);
+            color: white;
+            border-color: var(--macos-accent);
+        }
+
+        .macos-btn-primary:hover {
+            background: #0051d5;
+            border-color: #0051d5;
         }
         
-        .modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
-        .modal-enter-from, .modal-leave-to { opacity: 0; }
+        /* macOS 动画效果 */
+        .modal-enter-active {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .modal-leave-active {
+            transition: all 0.2s cubic-bezier(0.55, 0.055, 0.675, 0.19);
+        }
+        .modal-enter-from {
+            opacity: 0;
+            transform: scale(0.9) translateY(-20px);
+        }
+        .modal-leave-to {
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+        }
+
+        /* 弹性动画 */
+        @keyframes bounce-in {
+            0% { transform: scale(0.95); opacity: 0; }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .bounce-in {
+            animation: bounce-in 0.4s ease-out;
+        }
+
+        /* 卡片入场动画 */
+        .site-card {
+            animation: slide-up 0.5s ease-out;
+        }
+
+        @keyframes slide-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 侧边栏过渡 */
+        .sidebar-enter-active,
+        .sidebar-leave-active {
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-enter-from {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-leave-to {
+            transform: translateX(-100%);
+        }
+
+        /* 按钮点击效果 */
+        .macos-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* 搜索聚焦动画 */
+        .macos-search:focus {
+            transform: scale(1.02);
+        }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden text-sm">
 
 <div id="app" class="flex w-full h-full">
 
-    <!-- 侧边栏 -->
+    <!-- macOS 风格侧边栏 -->
     <aside class="sidebar w-64 flex-shrink-0 flex flex-col h-full z-20">
-        <div class="p-5 pb-2">
+        <!-- 顶部标题栏 -->
+        <div class="flex items-center justify-between border-b border-gray-200/50">
+            <div class="window-controls">
+                <div class="window-control close" title="关闭"></div>
+                <div class="window-control minimize" title="最小化"></div>
+                <div class="window-control maximize" title="最大化"></div>
+            </div>
+        </div>
+
+        <div class="p-6 pb-4">
             <div class="flex items-center gap-3 mb-6">
-                <div class="w-9 h-9 bg-slate-800 rounded-lg flex items-center justify-center text-white shadow-md">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
                     <i class="fa-solid fa-compass-drafting"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-base text-slate-800 tracking-tight">阿龙的作战中心</h1>
-                    <p class="text-[10px] text-slate-400 font-mono">OS v5.3 | Professional</p>
+                    <h1 class="font-semibold text-base text-gray-900">作战中心</h1>
+                    <p class="text-xs text-gray-500">v5.3 Professional</p>
                 </div>
             </div>
-            
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <button @click="openAddModal" class="flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:border-blue-400 hover:text-blue-600 text-slate-600 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm">
-                    <i class="fa-solid fa-plus"></i> 录入
+
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <button @click="openAddModal" class="macos-btn flex items-center justify-center gap-1.5 text-xs">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>录入</span>
                 </button>
-                <button @click="openAnalysisModal" class="flex items-center justify-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-1.5 rounded-lg text-xs font-medium transition-colors shadow-md shadow-blue-200">
-                    <i class="fa-solid fa-chart-pie"></i> 盘点
+                <button @click="openAnalysisModal" class="macos-btn macos-btn-primary flex items-center justify-center gap-1.5 text-xs">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>盘点</span>
                 </button>
             </div>
         </div>
 
         <nav class="flex-1 overflow-y-auto custom-scroll pb-6">
-            <a href="#" @click="currentFilter='all'" :class="['flex items-center px-5 py-2.5 text-xs transition-colors mb-1', currentFilter==='all' ? 'nav-item-active' : 'text-slate-600 hover:bg-slate-50']">
-                <i class="fa-solid fa-border-all w-5"></i> 全局全量 ({{ allSites.length }})
-            </a>
+            <div class="nav-item" :class="currentFilter==='all' ? 'nav-item-active' : ''" @click="currentFilter='all'">
+                <i class="fa-solid fa-border-all w-4 opacity-60"></i>
+                <span class="ml-3">全局全量</span>
+                <span class="ml-auto text-xs opacity-60">{{ allSites.length }}</span>
+            </div>
 
             <template v-for="(group, gIndex) in groupedCategories" :key="gIndex">
                 <div class="group-header">
-                    <i :class="group.icon"></i> {{ group.groupName }}
+                    <i :class="group.icon"></i>
+                    {{ group.groupName }}
                 </div>
-                <a v-for="cat in group.items" :key="cat.id" href="#" @click="currentFilter=cat.id" 
-                   :class="['flex items-center justify-between px-5 py-2 text-xs transition-colors', currentFilter===cat.id ? 'nav-item-active' : 'text-slate-600 hover:bg-slate-50']">
+                <div v-for="cat in group.items" :key="cat.id"
+                     class="nav-item text-xs"
+                     :class="currentFilter===cat.id ? 'nav-item-active' : ''"
+                     @click="currentFilter=cat.id">
                     <span class="flex items-center gap-2">
-                        <span class="w-1.5 h-1.5 rounded-full" :style="{background: cat.color}"></span>
+                        <span class="w-1.5 h-1.5 rounded-full opacity-60" :style="{background: cat.color}"></span>
                         {{ cat.name }}
                     </span>
-                    <span class="text-[10px] text-slate-400 bg-slate-100 px-1.5 rounded-full min-w-[20px] text-center">{{ getCountByCategory(cat.id) }}</span>
-                </a>
+                    <span class="ml-auto text-xs opacity-50">{{ getCountByCategory(cat.id) }}</span>
+                </div>
             </template>
         </nav>
-        
-        <div class="p-3 border-t border-slate-100 flex justify-between items-center bg-slate-50/50">
-            <span class="text-[10px] text-slate-400"><i class="fa-solid fa-database mr-1"></i> Data v5.3</span>
-            <button @click="openSettings" class="text-slate-400 hover:text-blue-600"><i class="fa-solid fa-gear"></i></button>
+
+        <!-- 底部状态栏 -->
+        <div class="p-4 border-t border-gray-200/50 flex justify-between items-center">
+            <span class="text-xs text-gray-500">
+                <i class="fa-solid fa-database mr-1"></i> Data v5.3
+            </span>
+            <button @click="openSettings" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <i class="fa-solid fa-gear"></i>
+            </button>
         </div>
     </aside>
 
-    <!-- 主内容区 -->
-    <main class="flex-1 h-full flex flex-col overflow-hidden relative bg-[#f4f6f8]">
-        <header class="h-14 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-10">
-            <div class="flex items-center gap-4 flex-1">
-                <h2 class="text-sm font-bold text-slate-800 hidden md:block">{{ getCurrentPageTitle }}</h2>
-                <div class="h-4 w-px bg-slate-200 hidden md:block"></div>
-                <div class="relative w-full max-w-md group">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
-                    <input type="text" v-model="searchQuery" placeholder="输入关键词 (支持拼音/英文)..." 
-                           class="w-full pl-9 pr-4 py-1.5 bg-slate-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-lg text-xs outline-none transition-all">
+    <!-- macOS 风格主内容区 -->
+    <main class="flex-1 h-full flex flex-col overflow-hidden relative">
+        <!-- macOS 标题栏 -->
+        <header class="h-16 flex items-center justify-between px-8 bg-white/60 backdrop-blur-xl border-b border-gray-200/50 sticky top-0 z-10">
+            <div class="flex items-center gap-6 flex-1">
+                <h2 class="text-base font-semibold text-gray-900">{{ getCurrentPageTitle }}</h2>
+                <div class="h-6 w-px bg-gray-300"></div>
+                <!-- Spotlight 风格搜索框 -->
+                <div class="relative w-full max-w-md">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-magnifying-glass text-gray-400"></i>
+                    </div>
+                    <input
+                        type="text"
+                        v-model="searchQuery"
+                        placeholder="搜索 (⌘K)"
+                        class="macos-search w-full pl-10 pr-4 text-sm"
+                        @keydown.cmd.k.prevent="searchQuery = ''; $el.focus()"
+                    >
                 </div>
             </div>
-            <div class="flex items-center gap-3 text-xs text-slate-500 font-mono">
-                <span class="bg-slate-100 px-2 py-1 rounded-md">{{ currentTime }}</span>
+            <div class="flex items-center gap-4">
+                <!-- 时间显示 -->
+                <div class="text-sm text-gray-600 font-medium">
+                    {{ currentTime }}
+                </div>
             </div>
         </header>
 
+        <!-- 内容区域 -->
         <div class="flex-1 overflow-y-auto p-8 custom-scroll">
-            
-            <div v-if="displaySites.length === 0" class="flex flex-col items-center justify-center h-full text-slate-400">
-                <i class="fa-solid fa-inbox text-4xl mb-4 opacity-30"></i>
-                <p>暂无相关资产</p>
+            <!-- 空状态 -->
+            <div v-if="displaySites.length === 0" class="flex flex-col items-center justify-center h-full">
+                <div class="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-inbox text-3xl text-gray-400"></i>
+                </div>
+                <p class="text-gray-500">暂无相关资产</p>
             </div>
 
             <div v-else>
@@ -230,10 +502,10 @@
         </div>
     </main>
 
-    <!-- 模态框组件 (保持逻辑) -->
+    <!-- macOS 风格模态框 -->
     <transition name="modal">
-        <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 border border-white/20" @click.stop>
+        <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
+            <div class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md p-6 border border-gray-200/50" @click.stop>
                 <div class="flex justify-between items-center mb-5">
                     <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">新增数字资产</h3>
                     <button @click="closeModal" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
@@ -248,23 +520,23 @@
                     </div>
                 </div>
                 <div class="space-y-4">
-                    <input v-model="newSite.name" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:border-blue-500 focus:bg-white outline-none transition-all" placeholder="资产名称">
-                    <input v-model="newSite.url" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:border-blue-500 focus:bg-white outline-none transition-all" placeholder="URL 地址">
-                    <select v-model="newSite.category" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:border-blue-500 outline-none">
+                    <input v-model="newSite.name" class="w-full p-3 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:bg-white outline-none transition-all" placeholder="资产名称">
+                    <input v-model="newSite.url" class="w-full p-3 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 focus:bg-white outline-none transition-all" placeholder="URL 地址">
+                    <select v-model="newSite.category" class="w-full p-3 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 outline-none">
                         <option v-for="cat in flatCategories" :value="cat.id">{{ cat.name }}</option>
                     </select>
                 </div>
-                <div class="flex gap-3 mt-8">
-                    <button @click="closeModal" class="flex-1 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-medium hover:bg-slate-50">取消</button>
-                    <button @click="addSite" class="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 shadow-lg shadow-blue-200">确认添加</button>
+                <div class="flex gap-3 mt-6">
+                    <button @click="closeModal" class="macos-btn flex-1 py-2.5 text-sm">取消</button>
+                    <button @click="addSite" class="macos-btn macos-btn-primary flex-1 py-2.5 text-sm">确认添加</button>
                 </div>
             </div>
         </div>
     </transition>
 
     <transition name="modal">
-        <div v-if="showAnalysisModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl h-[70vh] flex flex-col p-6" @click.stop>
+        <div v-if="showAnalysisModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
+            <div class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-4xl h-[75vh] flex flex-col p-8 border border-gray-200/50" @click.stop>
                 <div class="flex justify-between items-center mb-4 border-b pb-3">
                     <h3 class="text-sm font-bold text-slate-800"><i class="fa-solid fa-wand-magic-sparkles text-purple-600 mr-2"></i>资产结构分析</h3>
                     <button @click="closeAnalysisModal" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
@@ -278,7 +550,7 @@
                         <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-3"></i>
                         <p class="text-xs">Deep Thinking...</p>
                     </div>
-                    <div v-if="analysisResult" v-html="renderMarkdown(analysisResult)"></div>
+                    <div v-if="analysisResult" v-html="safeRenderMarkdown(analysisResult)"></div>
                 </div>
                 <div class="mt-4 pt-3 border-t flex justify-end">
                     <button @click="analyzeAssets" :disabled="isAnalyzing" class="px-5 py-2 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 shadow-lg shadow-purple-200">开始分析</button>
@@ -288,13 +560,13 @@
     </transition>
 
     <transition name="modal">
-        <div v-if="showSettingsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6" @click.stop>
-                <h3 class="text-sm font-bold text-slate-800 mb-4">Gemini API 配置</h3>
-                <input v-model="tempApiKey" type="password" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:border-blue-500 outline-none font-mono" placeholder="sk-...">
-                <div class="flex justify-end gap-2 mt-6">
-                    <button @click="showSettingsModal = false" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
-                    <button @click="saveSettings" class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">保存</button>
+        <div v-if="showSettingsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
+            <div class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md p-6 border border-gray-200/50" @click.stop>
+                <h3 class="text-base font-semibold text-gray-900 mb-5">API 配置</h3>
+                <input v-model="tempApiKey" type="password" class="w-full p-3 bg-gray-50/50 border border-gray-200 rounded-xl text-sm focus:border-blue-500 outline-none font-mono" placeholder="sk-...">
+                <div class="flex justify-end gap-3 mt-6">
+                    <button @click="showSettingsModal = false" class="macos-btn px-5 py-2 text-sm">取消</button>
+                    <button @click="saveSettings" class="macos-btn macos-btn-primary px-5 py-2 text-sm">保存</button>
                 </div>
             </div>
         </div>
@@ -601,6 +873,63 @@ const PARSED_DATA = [
 
 createApp({
     setup() {
+        // 加密存储工具
+        const secureStorage = {
+            // 生成固定密钥（实际项目中应从用户输入或安全上下文获取）
+            getSecretKey: () => {
+                let key = localStorage.getItem('storage_key');
+                if (!key) {
+                    key = CryptoJS.lib.WordArray.random(256/8).toString();
+                    localStorage.setItem('storage_key', key);
+                }
+                return key;
+            },
+
+            // 加密数据
+            encrypt: (data) => {
+                try {
+                    const encrypted = CryptoJS.AES.encrypt(data, secureStorage.getSecretKey()).toString();
+                    return encrypted;
+                } catch (e) {
+                    console.error('Encryption failed:', e);
+                    return null;
+                }
+            },
+
+            // 解密数据
+            decrypt: (encryptedData) => {
+                try {
+                    const decrypted = CryptoJS.AES.decrypt(encryptedData, secureStorage.getSecretKey());
+                    return decrypted.toString(CryptoJS.enc.Utf8);
+                } catch (e) {
+                    console.error('Decryption failed:', e);
+                    return null;
+                }
+            },
+
+            // 安全存储
+            setItem: (key, value) => {
+                const encrypted = secureStorage.encrypt(value);
+                if (encrypted) {
+                    localStorage.setItem(`secure_${key}`, encrypted);
+                }
+            },
+
+            // 安全读取
+            getItem: (key) => {
+                const encrypted = localStorage.getItem(`secure_${key}`);
+                if (encrypted) {
+                    return secureStorage.decrypt(encrypted);
+                }
+                return null;
+            },
+
+            // 删除
+            removeItem: (key) => {
+                localStorage.removeItem(`secure_${key}`);
+            }
+        };
+
         const allSites = ref([]);
         const searchQuery = ref("");
         const currentFilter = ref("all");
@@ -608,8 +937,8 @@ createApp({
         const currentTime = ref("");
         const showSettingsModal = ref(false);
         const showAnalysisModal = ref(false);
-        const tempApiKey = ref(localStorage.getItem('gemini_api_key') || '');
-        const apiKey = ref(localStorage.getItem('gemini_api_key') || '');
+        const tempApiKey = ref(secureStorage.getItem('gemini_api_key') || '');
+        const apiKey = ref(secureStorage.getItem('gemini_api_key') || '');
         const smartInput = ref("");
         const isProcessing = ref(false);
         const isAnalyzing = ref(false);
@@ -700,7 +1029,11 @@ createApp({
             saveSites(); closeModal();
         };
         const openSettings = () => { tempApiKey.value = apiKey.value; showSettingsModal.value = true; };
-        const saveSettings = () => { apiKey.value = tempApiKey.value; localStorage.setItem('gemini_api_key', apiKey.value); showSettingsModal.value = false; };
+        const saveSettings = () => {
+          apiKey.value = tempApiKey.value;
+          secureStorage.setItem('gemini_api_key', apiKey.value);
+          showSettingsModal.value = false;
+      };
         
         const callGemini = async (prompt) => {
             if (!apiKey.value) { alert("请先配置 API Key"); openSettings(); throw new Error("No Key"); }
@@ -733,13 +1066,14 @@ createApp({
             } catch (e) { analysisResult.value = "分析失败"; } finally { isAnalyzing.value = false; }
         };
         const renderMarkdown = (t) => marked.parse(t);
+        const safeRenderMarkdown = (t) => DOMPurify.sanitize(marked.parse(t));
 
         return {
             allSites, groupedCategories, flatCategories, currentFilter, displaySites, displaySitesGrouped,
             searchQuery, currentTime, showModal, showSettingsModal, showAnalysisModal,
             tempApiKey, smartInput, isProcessing, isAnalyzing, analysisResult, newSite, getCurrentPageTitle,
             openAddModal, closeModal, addSite, openSettings, saveSettings, openAnalysisModal, closeAnalysisModal,
-            smartParse, analyzeAssets, renderMarkdown, getFavicon, handleImageError, getDomain,
+            smartParse, analyzeAssets, renderMarkdown, safeRenderMarkdown, getFavicon, handleImageError, getDomain,
             visitSite, deleteSite, getCountByCategory, getCategoryColor
         };
     }
