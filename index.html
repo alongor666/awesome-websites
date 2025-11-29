@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阿龙的数字化作战中心 | Ah Long's OS v5.3</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --sidebar-bg: #ffffff;
+            --card-bg: #ffffff;
+            --text-primary: #0f172a;
+            --primary-color: #3b82f6;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* 侧边栏设计 */
+        .sidebar {
+            background: var(--sidebar-bg);
+            border-right: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.01);
+        }
+
+        .group-header {
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 18px 16px 6px 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .group-header i { font-size: 9px; opacity: 0.6; }
+
+        /* 卡片设计 */
+        .site-card {
+            background: var(--card-bg);
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .site-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08);
+            border-color: #94a3b8;
+            z-index: 10;
+        }
+
+        /* 顶部彩色条 */
+        .color-bar { height: 3px; width: 100%; position: absolute; top: 0; left: 0; opacity: 0.9; }
+
+        /* 智能标签 */
+        .badge {
+            font-size: 9px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-weight: 600;
+            display: inline-block;
+            line-height: 1.3;
+        }
+        .badge-core { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; } /* 蓝色：核心 */
+        .badge-doc { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; } /* 绿色：文档 */
+        .badge-vpn { background: #faf5ff; color: #9333ea; border: 1px solid #e9d5ff; } /* 紫色：网络 */
+
+        /* 滚动条 */
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
+        
+        /* 导航选中态 */
+        .nav-item-active {
+            background-color: #eff6ff;
+            color: var(--primary-color);
+            font-weight: 600;
+            border-right: 3px solid var(--primary-color);
+        }
+        
+        .modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
+        .modal-enter-from, .modal-leave-to { opacity: 0; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden text-sm">
+
+<div id="app" class="flex w-full h-full">
+
+    <!-- 侧边栏 -->
+    <aside class="sidebar w-64 flex-shrink-0 flex flex-col h-full z-20">
+        <div class="p-5 pb-2">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-9 h-9 bg-slate-800 rounded-lg flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-compass-drafting"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base text-slate-800 tracking-tight">阿龙的作战中心</h1>
+                    <p class="text-[10px] text-slate-400 font-mono">OS v5.3 | Professional</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <button @click="openAddModal" class="flex items-center justify-center gap-1.5 bg-white border border-slate-200 hover:border-blue-400 hover:text-blue-600 text-slate-600 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm">
+                    <i class="fa-solid fa-plus"></i> 录入
+                </button>
+                <button @click="openAnalysisModal" class="flex items-center justify-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-1.5 rounded-lg text-xs font-medium transition-colors shadow-md shadow-blue-200">
+                    <i class="fa-solid fa-chart-pie"></i> 盘点
+                </button>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto custom-scroll pb-6">
+            <a href="#" @click="currentFilter='all'" :class="['flex items-center px-5 py-2.5 text-xs transition-colors mb-1', currentFilter==='all' ? 'nav-item-active' : 'text-slate-600 hover:bg-slate-50']">
+                <i class="fa-solid fa-border-all w-5"></i> 全局全量 ({{ allSites.length }})
+            </a>
+
+            <template v-for="(group, gIndex) in groupedCategories" :key="gIndex">
+                <div class="group-header">
+                    <i :class="group.icon"></i> {{ group.groupName }}
+                </div>
+                <a v-for="cat in group.items" :key="cat.id" href="#" @click="currentFilter=cat.id" 
+                   :class="['flex items-center justify-between px-5 py-2 text-xs transition-colors', currentFilter===cat.id ? 'nav-item-active' : 'text-slate-600 hover:bg-slate-50']">
+                    <span class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full" :style="{background: cat.color}"></span>
+                        {{ cat.name }}
+                    </span>
+                    <span class="text-[10px] text-slate-400 bg-slate-100 px-1.5 rounded-full min-w-[20px] text-center">{{ getCountByCategory(cat.id) }}</span>
+                </a>
+            </template>
+        </nav>
+        
+        <div class="p-3 border-t border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <span class="text-[10px] text-slate-400"><i class="fa-solid fa-database mr-1"></i> Data v5.3</span>
+            <button @click="openSettings" class="text-slate-400 hover:text-blue-600"><i class="fa-solid fa-gear"></i></button>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="flex-1 h-full flex flex-col overflow-hidden relative bg-[#f4f6f8]">
+        <header class="h-14 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-10">
+            <div class="flex items-center gap-4 flex-1">
+                <h2 class="text-sm font-bold text-slate-800 hidden md:block">{{ getCurrentPageTitle }}</h2>
+                <div class="h-4 w-px bg-slate-200 hidden md:block"></div>
+                <div class="relative w-full max-w-md group">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                    <input type="text" v-model="searchQuery" placeholder="输入关键词 (支持拼音/英文)..." 
+                           class="w-full pl-9 pr-4 py-1.5 bg-slate-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-lg text-xs outline-none transition-all">
+                </div>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-slate-500 font-mono">
+                <span class="bg-slate-100 px-2 py-1 rounded-md">{{ currentTime }}</span>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 custom-scroll">
+            
+            <div v-if="displaySites.length === 0" class="flex flex-col items-center justify-center h-full text-slate-400">
+                <i class="fa-solid fa-inbox text-4xl mb-4 opacity-30"></i>
+                <p>暂无相关资产</p>
+            </div>
+
+            <div v-else>
+                <!-- 全局视图：按业务板块分组 -->
+                <div v-if="currentFilter === 'all'">
+                    <div v-for="(groupData, groupName) in displaySitesGrouped" :key="groupName" class="mb-10">
+                        <div class="flex items-center gap-3 mb-4">
+                            <h3 class="text-sm font-bold text-slate-700">{{ groupName }}</h3>
+                            <div class="h-px flex-1 bg-slate-200"></div>
+                            <span class="text-[10px] font-mono text-slate-400">{{ groupData.length }}</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                            <div v-for="site in groupData" :key="site.url" class="site-card group h-24 p-3.5 flex flex-col justify-between cursor-pointer" @click="visitSite(site)">
+                                <div class="color-bar" :style="{background: getCategoryColor(site.category)}"></div>
+                                <div class="flex items-start gap-3 mt-1">
+                                    <img :src="getFavicon(site.url)" @error="handleImageError" class="w-8 h-8 rounded-lg bg-white border border-slate-100 p-0.5 object-contain flex-shrink-0">
+                                    <div class="min-w-0 flex-1">
+                                        <h4 class="font-bold text-slate-800 text-xs truncate leading-snug group-hover:text-blue-600 transition-colors" :title="site.name">{{ site.name }}</h4>
+                                        <p class="text-[10px] text-slate-400 truncate mt-0.5 opacity-80">{{ getDomain(site.url) }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between mt-2">
+                                    <div class="flex gap-1">
+                                        <span v-if="site.rank <= 3" class="badge badge-core">Top</span>
+                                        <span v-if="site.tags && site.tags.includes('doc')" class="badge badge-doc">Doc</span>
+                                        <span v-if="site.tags && site.tags.includes('vpn')" class="badge badge-vpn">Net</span>
+                                    </div>
+                                    <button @click.stop="deleteSite(site)" class="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-opacity p-1"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 专注模式 -->
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                    <div v-for="site in displaySites" :key="site.url" class="site-card group h-24 p-3.5 flex flex-col justify-between cursor-pointer" @click="visitSite(site)">
+                        <div class="color-bar" :style="{background: getCategoryColor(site.category)}"></div>
+                        <div class="flex items-start gap-3 mt-1">
+                            <img :src="getFavicon(site.url)" @error="handleImageError" class="w-8 h-8 rounded-lg bg-white border border-slate-100 p-0.5 object-contain flex-shrink-0">
+                            <div class="min-w-0 flex-1">
+                                <h4 class="font-bold text-slate-800 text-xs truncate leading-snug group-hover:text-blue-600" :title="site.name">{{ site.name }}</h4>
+                                <p class="text-[10px] text-slate-400 truncate mt-0.5 opacity-80">{{ getDomain(site.url) }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-2">
+                            <div class="flex gap-1">
+                                <span v-if="site.rank <= 3" class="badge badge-core">Top</span>
+                                <span v-if="site.tags && site.tags.includes('doc')" class="badge badge-doc">Doc</span>
+                                <span v-if="site.tags && site.tags.includes('vpn')" class="badge badge-vpn">Net</span>
+                            </div>
+                            <button @click.stop="deleteSite(site)" class="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-opacity p-1"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 模态框组件 (保持逻辑) -->
+    <transition name="modal">
+        <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 border border-white/20" @click.stop>
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">新增数字资产</h3>
+                    <button @click="closeModal" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <!-- AI Smart Add -->
+                <div class="mb-5 bg-indigo-50 p-3 rounded-lg border border-indigo-100/50">
+                    <div class="flex gap-2">
+                        <input v-model="smartInput" @keyup.enter="smartParse" type="text" class="flex-1 bg-transparent text-xs outline-none text-indigo-900 placeholder-indigo-300" placeholder="粘贴任意文本，AI 自动归类...">
+                        <button @click="smartParse" :disabled="isProcessing" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold disabled:opacity-50">
+                            <i v-if="isProcessing" class="fa-solid fa-circle-notch fa-spin"></i> <span v-else>识别</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <input v-model="newSite.name" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:border-blue-500 focus:bg-white outline-none transition-all" placeholder="资产名称">
+                    <input v-model="newSite.url" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:border-blue-500 focus:bg-white outline-none transition-all" placeholder="URL 地址">
+                    <select v-model="newSite.category" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:border-blue-500 outline-none">
+                        <option v-for="cat in flatCategories" :value="cat.id">{{ cat.name }}</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 mt-8">
+                    <button @click="closeModal" class="flex-1 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-medium hover:bg-slate-50">取消</button>
+                    <button @click="addSite" class="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 shadow-lg shadow-blue-200">确认添加</button>
+                </div>
+            </div>
+        </div>
+    </transition>
+
+    <transition name="modal">
+        <div v-if="showAnalysisModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl h-[70vh] flex flex-col p-6" @click.stop>
+                <div class="flex justify-between items-center mb-4 border-b pb-3">
+                    <h3 class="text-sm font-bold text-slate-800"><i class="fa-solid fa-wand-magic-sparkles text-purple-600 mr-2"></i>资产结构分析</h3>
+                    <button @click="closeAnalysisModal" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scroll prose prose-sm max-w-none p-2 text-slate-600">
+                    <div v-if="!analysisResult && !isAnalyzing" class="text-center mt-20 text-slate-400">
+                        <i class="fa-solid fa-brain text-5xl mb-4 text-purple-200"></i>
+                        <p>AI 将基于 MECE 原则分析您的工具栈覆盖度与缺失。</p>
+                    </div>
+                    <div v-if="isAnalyzing" class="flex flex-col items-center justify-center mt-20 text-purple-600">
+                        <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-3"></i>
+                        <p class="text-xs">Deep Thinking...</p>
+                    </div>
+                    <div v-if="analysisResult" v-html="renderMarkdown(analysisResult)"></div>
+                </div>
+                <div class="mt-4 pt-3 border-t flex justify-end">
+                    <button @click="analyzeAssets" :disabled="isAnalyzing" class="px-5 py-2 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 shadow-lg shadow-purple-200">开始分析</button>
+                </div>
+            </div>
+        </div>
+    </transition>
+
+    <transition name="modal">
+        <div v-if="showSettingsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6" @click.stop>
+                <h3 class="text-sm font-bold text-slate-800 mb-4">Gemini API 配置</h3>
+                <input v-model="tempApiKey" type="password" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:border-blue-500 outline-none font-mono" placeholder="sk-...">
+                <div class="flex justify-end gap-2 mt-6">
+                    <button @click="showSettingsModal = false" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                    <button @click="saveSettings" class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">保存</button>
+                </div>
+            </div>
+        </div>
+    </transition>
+
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted } = Vue;
+
+// ----------------------------------------------------------------
+// MECE 分类体系 v5.3 (专业/通用规则优化)
+// ----------------------------------------------------------------
+const CATEGORY_STRUCTURE = [
+    {
+        groupName: "🏛️ 经营决策 (Executive)",
+        icon: "fa-solid fa-briefcase",
+        items: [
+            { id: "biz_ops", name: "内部协同 & 系统", color: "#2563eb" }, 
+            { id: "biz_data", name: "BI 报表 & 监控", color: "#dc2626" },
+            { id: "biz_ext", name: "监管 & 市场情报", color: "#b91c1c" }
+        ]
+    },
+    {
+        groupName: "🧠 智能体 (AI Matrix)",
+        icon: "fa-solid fa-brain",
+        items: [
+            { id: "ai_chat", name: "前沿 SOTA 模型", color: "#8b5cf6" },
+            { id: "ai_cn", name: "国产大模型", color: "#7c3aed" },
+            { id: "ai_search", name: "Deep Search & Agent", color: "#6d28d9" }
+        ]
+    },
+    {
+        groupName: "⚙️ 开发者 (Dev Studio)",
+        icon: "fa-solid fa-code",
+        items: [
+            { id: "dev_ide", name: "云端 IDE & 辅助", color: "#10b981" },
+            { id: "dev_api", name: "模型 API 管理", color: "#059669" },
+            { id: "dev_infra", name: "全栈云基建", color: "#047857" },
+            { id: "dev_mcp", name: "MCP 生态协议", color: "#065f46" }
+        ]
+    },
+    {
+        groupName: "🎨 创意流 (Creative)",
+        icon: "fa-solid fa-palette",
+        items: [
+            { id: "create_vision", name: "视觉 & 视频流", color: "#f59e0b" },
+            { id: "create_design", name: "交互 & 可视化", color: "#d97706" }
+        ]
+    },
+    {
+        groupName: "📚 知识体系 (Knowledge)",
+        icon: "fa-solid fa-graduation-cap",
+        items: [
+            { id: "know_research", name: "学术科研 (Research)", color: "#0f172a" },
+            { id: "know_mgmt", name: "第二大脑 (Notes)", color: "#334155" },
+            { id: "know_learn", name: "终身学习 (Edu)", color: "#475569" },
+            { id: "know_ref", name: "参考资料 (Ref)", color: "#64748b" }
+        ]
+    },
+    {
+        groupName: "🛠️ 效能基建 (Infrastructure)",
+        icon: "fa-solid fa-screwdriver-wrench",
+        items: [
+            { id: "tool_collab", name: "协同通讯 (Collab)", color: "#2563eb" },
+            { id: "tool_office", name: "办公与数据 (Office)", color: "#0ea5e9" },
+            { id: "tool_net", name: "网络与账户 (Net)", color: "#6366f1" },
+            { id: "my_works", name: "个人发布 (Deploy)", color: "#ec4899" }
+        ]
+    }
+];
+
+// ----------------------------------------------------------------
+// 全量数据 + 场景化权重 (Rank: 1=Highest)
+// ----------------------------------------------------------------
+const PARSED_DATA = [
+    // --- 1.1 内部协同 (biz_ops) ---
+    { name: "企微文档", url: "https://doc.weixin.qq.com/home/recent", category: "biz_ops", rank: 1, tags: ["doc"] },
+    { name: "邮件系统", url: "https://webmail.sinosafe.com.cn/coremail/XT/index.jsp", category: "biz_ops", rank: 2 },
+    { name: "OneDrive", url: "https://onedrive.live.com/", category: "biz_ops", rank: 3, tags: ["doc"] },
+    { name: "OA 办公系统", url: "http://oa.sinosafe.com.cn/login.jsp", category: "biz_ops", rank: 4 },
+    { name: "车险核心", url: "http://auto.sinosafe.com.cn/index.jsp", category: "biz_ops", rank: 5 },
+    { name: "电销 CRM", url: "https://crm.sinosafe.com.cn/", category: "biz_ops", rank: 6 },
+    { name: "反洗钱工作台", url: "http://amlnew.sinosafe.com.cn/#/work-support/report-work/report-check", category: "biz_ops", rank: 7 },
+    { name: "企大培训平台", url: "http://nclm.qida.com/#taskInput?id=200073745", category: "biz_ops", rank: 8 },
+    { name: "删邮件入口", url: "https://webmail.sinosafe.com.cn/coremail/XT/index.jsp?sid=CAdLwXbbpKJeMFSEXHIsOLJvgmytvowb#mail.list|%7B%22fid%22%3A1%7D", category: "biz_ops", rank: 9 },
+
+    // --- 1.2 数据决策 (biz_data) ---
+    { name: "经营决策系统", url: "http://iap.sinosafe.com.cn/#/analysisdor/analysis/countAnalysis", category: "biz_data", rank: 1 },
+    { name: "FineBI 报表平台", url: "http://bi.sinosafe.com.cn/", category: "biz_data", rank: 2 },
+    { name: "续保监控", url: "http://bi.sinosafe.com.cn/decision/link/rVYp", category: "biz_data", rank: 3 },
+    { name: "报价追踪表", url: "http://bi.sinosafe.com.cn/decision/link/TQlh", category: "biz_data", rank: 4 },
+    { name: "多维车险成本", url: "https://bi.sinosafe.com.cn/decision#/analysis/own/subject/ea63ccdc862c49f1913cdc9015c6b439/report/7a387f2817e84788bdd004cd6bafc36d", category: "biz_data", rank: 5 },
+    { name: "驾意险转化率", url: "http://bi.sinosafe.com.cn/decision/link/jgXN", category: "biz_data", rank: 6 },
+    { name: "货车风险评分", url: "https://risk.deltaentropy.com/#/ds", category: "biz_data", rank: 7 },
+    { name: "转续保报价", url: "http://bi.sinosafe.com.cn/decision/link/Xl80", category: "biz_data", rank: 8 },
+    { name: "赔付率分析", url: "https://bi.sinosafe.com.cn/decision#/analysis/own/subject/16b7474a1e12452d9ea4736d8db40c9f/report/3435b9d091f14b768de286da4030b614", category: "biz_data", rank: 9 },
+    { name: "承保清单规范", url: "https://gemini.google.com/share/c88b3a1f1d2c", category: "biz_data", rank: 10, tags: ["doc"] },
+    { name: "FineChatBI 指引", url: "https://help.fanruan.com/finebi/doc-view-2580.html", category: "biz_data", rank: 11, tags: ["doc"] },
+    { name: "应用复用助手", url: "https://robot.fanruan.com/chat/app", category: "biz_data", rank: 12 },
+
+    // --- 1.3 外部情报 (biz_ext) ---
+    { name: "四川金融监管局", url: "https://dfjrjgj.sc.gov.cn/scdfjrjgj/jgdt/2024/2/6/377dc9e8905942acbe10da1b5143a10e.shtml", category: "biz_ext", rank: 1 },
+    { name: "南充政府数据", url: "https://www.nanchong.gov.cn/data/catalog/details.html?id=156619", category: "biz_ext", rank: 2 },
+    { name: "网站公安备案", url: "https://beian.mps.gov.cn/web/business/businessHome/draft", category: "biz_ext", rank: 3 },
+    { name: "汽车之家-新能源", url: "https://ev.autohome.com.cn/", category: "biz_ext", rank: 4 },
+    { name: "瓜子二手车", url: "https://gz.guazi.com/", category: "biz_ext", rank: 5 },
+    { name: "卡车之家", url: "https://product.360che.com/", category: "biz_ext", rank: 6 },
+    { name: "摩托车之家", url: "https://www.newmotor.com.cn/", category: "biz_ext", rank: 7 },
+
+    // --- 2.1 前沿模型 (ai_chat) ---
+    { name: "DeepSeek 官网", url: "https://chat.deepseek.com/", category: "ai_chat", rank: 1 },
+    { name: "ChatGPT", url: "https://chatgpt.com/?oai-dm=1", category: "ai_chat", rank: 2 },
+    { name: "Claude AI", url: "https://claude.ai/", category: "ai_chat", rank: 3 },
+    { name: "Gemini", url: "https://gemini.google.com/app", category: "ai_chat", rank: 4 },
+    { name: "Grok", url: "https://grok.com/", category: "ai_chat", rank: 5 },
+    { name: "LMArena 竞技场", url: "https://lmarena.ai/", category: "ai_chat", rank: 6 },
+    { name: "Qwen", url: "https://chat.qwen.ai/", category: "ai_chat", rank: 7 },
+    { name: "Jules", url: "https://jules.google.com/task", category: "ai_chat", rank: 8 },
+    { name: "Aiswers (多AI)", url: "https://www.aiswers.com/bot/chatgpt", category: "ai_chat", rank: 9 },
+    { name: "Google AI Labs", url: "https://labs.google/", category: "ai_chat", rank: 10 },
+
+    // --- 2.2 国产大模 (ai_cn) ---
+    { name: "Kimi 智能助手", url: "https://kimi.moonshot.cn/", category: "ai_cn", rank: 1 },
+    { name: "智谱清言", url: "https://chatglm.cn/", category: "ai_cn", rank: 2 },
+    { name: "腾讯元宝", url: "https://yuanbao.tencent.com/", category: "ai_cn", rank: 3 },
+    { name: "通义听悟", url: "https://tingwu.aliyun.com/home", category: "ai_cn", rank: 4 },
+    { name: "Gemini 3.0 Pro (飞书)", url: "https://kcnj7yazgs86.feishu.cn/wiki/NTsQw69bYiPtgzkHyy7cZRurn1O", category: "ai_cn", rank: 5 },
+    { name: "文心一言", url: "https://yiyan.baidu.com/promptCenter", category: "ai_cn", rank: 6 },
+    { name: "超算-DeepSeek", url: "https://chat.scnet.cn/", category: "ai_cn", rank: 7 },
+    { name: "智普AI", url: "https://chat.z.ai/", category: "ai_cn", rank: 8 },
+    { name: "天工 AI", url: "https://skywork.ai/", category: "ai_cn", rank: 9 },
+
+    // --- 2.3 智能搜索 & Agent (ai_search) ---
+    { name: "Genspark Agents", url: "https://www.genspark.ai/agents", category: "ai_search", rank: 1 },
+    { name: "秘塔 AI 搜索", url: "https://metaso.cn/", category: "ai_search", rank: 2 },
+    { name: "纳米 AI 搜索", url: "https://www.n.cn/", category: "ai_search", rank: 3 },
+    { name: "Coze (扣子)", url: "https://www.coze.cn/space-preview", category: "ai_search", rank: 4 },
+    { name: "Flowith 思维链", url: "https://flowith.io/", category: "ai_search", rank: 5 },
+    { name: "知乎直答", url: "https://zhida.zhihu.com/", category: "ai_search", rank: 6 },
+    { name: "AI Agents 库", url: "https://waytoagi.feishu.cn/wiki/GFS0wJB78izVBmk3LVgcCn2MnCh", category: "ai_search", rank: 7 },
+    { name: "Vinsoo 云Agent", url: "https://www.aiyouthlab.com/", category: "ai_search", rank: 8 },
+    { name: "MiniMax Agent", url: "https://agent.minimax.io/", category: "ai_search", rank: 9 },
+    { name: "PromptPilot", url: "https://promptpilot.volcengine.com/home", category: "ai_search", rank: 10 },
+    { name: "SearchPromptly", url: "https://searchpromptly.com/", category: "ai_search", rank: 11 },
+    { name: "PromptMuse", url: "https://promptmuse.net/", category: "ai_search", rank: 12 },
+
+    // --- 3.1 云端 IDE (dev_ide) ---
+    { name: "Cursor Agents", url: "https://cursor.com/cn/agents", category: "dev_ide", rank: 1 },
+    { name: "Claude Code", url: "https://claude.ai/code", category: "dev_ide", rank: 2 },
+    { name: "Replit", url: "https://replit.com/", category: "dev_ide", rank: 3 },
+    { name: "Vercel v0", url: "https://v0.dev/", category: "dev_ide", rank: 4 },
+    { name: "Bolt.new", url: "https://bolt.new/", category: "dev_ide", rank: 5 },
+    { name: "Google IDX", url: "https://idx.google.com/", category: "dev_ide", rank: 6 },
+    { name: "Lovable", url: "https://lovable.dev/", category: "dev_ide", rank: 7 },
+    { name: "Manus", url: "https://manus.im/app", category: "dev_ide", rank: 8 },
+    { name: "Zoer DB编程", url: "https://zoer.ai/", category: "dev_ide", rank: 9 },
+    { name: "Colaboratory", url: "https://colab.research.google.com/", category: "dev_ide", rank: 10 },
+    { name: "Text Editor", url: "https://texteditor.co/", category: "dev_ide", rank: 11 },
+    { name: "CopyCoder", url: "https://copycoder.ai/", category: "dev_ide", rank: 12 },
+    { name: "App Gen", url: "https://appgen.groqlabs.com/", category: "dev_ide", rank: 13 },
+    { name: "Learn Cursor", url: "https://cursor.directory/learn", category: "dev_ide", rank: 14, tags: ["doc"] },
+    { name: "Windsurf 文档", url: "https://docs.codeium.com/windsurf", category: "dev_ide", rank: 15, tags: ["doc"] },
+
+    // --- 3.2 模型 API (dev_api) ---
+    { name: "DeepSeek API", url: "https://platform.deepseek.com/usage", category: "dev_api", rank: 1 },
+    { name: "OpenRouter", url: "https://openrouter.ai/chat", category: "dev_api", rank: 2 },
+    { name: "Google AI Studio", url: "https://aistudio.google.com/", category: "dev_api", rank: 3 },
+    { name: "硅基流动 API", url: "https://cloud.siliconflow.cn/account/ak", category: "dev_api", rank: 4 },
+    { name: "阿里云百炼", url: "https://bailian.console.aliyun.com/", category: "dev_api", rank: 5 },
+    { name: "智谱开放平台", url: "https://open.bigmodel.cn/", category: "dev_api", rank: 6 },
+    { name: "Exa API", url: "https://dashboard.exa.ai/", category: "dev_api", rank: 7 },
+    { name: "OpenRouter Keys", url: "https://openrouter.ai/settings/keys", category: "dev_api", rank: 8 },
+    { name: "火山引擎登录", url: "https://console.volcengine.com/", category: "dev_api", rank: 9 },
+
+    // --- 3.3 云基建 (dev_infra) ---
+    { name: "GitHub", url: "https://github.com/", category: "dev_infra", rank: 1 },
+    { name: "Cloudflare", url: "https://dash.cloudflare.com/", category: "dev_infra", rank: 2 },
+    { name: "阿里云服务器", url: "https://myaccount.console.aliyun.com/", category: "dev_infra", rank: 3 },
+    { name: "腾讯云轻量云", url: "https://console.cloud.tencent.com/lighthouse/", category: "dev_infra", rank: 4 },
+    { name: "Supabase", url: "https://supabase.com/", category: "dev_infra", rank: 5 },
+    { name: "Firebase Hosting", url: "https://firebase.google.com/docs/hosting", category: "dev_infra", rank: 6 },
+    { name: "Firebase Console", url: "https://console.firebase.google.com/", category: "dev_infra", rank: 7 },
+    { name: "MemFire Cloud", url: "https://cloud.memfiredb.com/", category: "dev_infra", rank: 8 },
+    { name: "MemFire Editor", url: "https://d40alqog91htqli3t530.baseapi.memfiredb.com/project/default/editor", category: "dev_infra", rank: 9 },
+    { name: "MemFire 认证", url: "https://cloud.memfiredb.com/setting/certification", category: "dev_infra", rank: 10 },
+    { name: "ICP 备案", url: "https://console.cloud.tencent.com/beian", category: "dev_infra", rank: 11 },
+    { name: "Webify", url: "https://webify.cloudbase.net/", category: "dev_infra", rank: 12 },
+    { name: "Git GUI", url: "https://git-scm.com/downloads/guis", category: "dev_infra", rank: 13 },
+    { name: "腾讯云文档", url: "https://cloud.tencent.com/document/product/213/2936", category: "dev_infra", rank: 14, tags: ["doc"] },
+    { name: "腾讯云支持", url: "https://cloud.tencent.com/online-service", category: "dev_infra", rank: 15 },
+
+    // --- 3.4 MCP 生态 (dev_mcp) ---
+    { name: "MCP Servers (Glama)", url: "https://glama.ai/mcp/servers", category: "dev_mcp", rank: 1 },
+    { name: "魔搭社区 MCP", url: "https://modelscope.cn/mcp", category: "dev_mcp", rank: 2 },
+    { name: "MCP 实验场", url: "https://www.modelscope.cn/mcp/playground", category: "dev_mcp", rank: 3 },
+    { name: "MCP.so", url: "https://mcp.so/zh", category: "dev_mcp", rank: 4 },
+    { name: "Cursor MCP Docs", url: "https://cursor.directory/mcp", category: "dev_mcp", rank: 5, tags: ["doc"] },
+    { name: "Claude MCP Docs", url: "https://docs.anthropic.com/zh-CN/docs/claude-code/mcp", category: "dev_mcp", rank: 6, tags: ["doc"] },
+    { name: "VS Code MCP", url: "https://code.visualstudio.com/mcp", category: "dev_mcp", rank: 7 },
+
+    // --- 4.1 视觉与视频 (create_vision) ---
+    { name: "Midjourney", url: "https://discord.com/", category: "create_vision", rank: 1 },
+    { name: "可灵 AI (Kling)", url: "https://app.klingai.com/", category: "create_vision", rank: 2 },
+    { name: "Hailuo AI (海螺)", url: "https://hailuoai.video/", category: "create_vision", rank: 3 },
+    { name: "Recraft (SVG)", url: "https://www.recraft.ai/", category: "create_vision", rank: 4 },
+    { name: "Flux Playground", url: "https://playground.bfl.ai/", category: "create_vision", rank: 5 },
+    { name: "星流 Art", url: "https://www.xingliu.art/", category: "create_vision", rank: 6 },
+    { name: "Hunyuan 3D", url: "https://3d.hunyuan.tencent.com/", category: "create_vision", rank: 7 },
+    { name: "腾讯混元图", url: "https://hunyuan.tencent.com/", category: "create_vision", rank: 8 },
+    { name: "Flow (Google)", url: "https://labs.google/fx/tools/flow", category: "create_vision", rank: 9 },
+    { name: "SVG 在线编辑", url: "https://www.jyshare.com/more/svgeditor/", category: "create_vision", rank: 10 },
+    { name: "Tldraw (画一切)", url: "https://computer.tldraw.com/", category: "create_vision", rank: 11 },
+
+    // --- 4.2 交互与展示 (create_design) ---
+    { name: "Napkin.ai", url: "https://app.napkin.ai/", category: "create_design", rank: 1 },
+    { name: "Figma", url: "https://www.figma.com/", category: "create_design", rank: 2 },
+    { name: "AiPPT", url: "https://www.aippt.cn/", category: "create_design", rank: 3 },
+    { name: "G2Plot 图表库", url: "https://g2plot.antv.antgroup.com/manual/plots/heatmap", category: "create_design", rank: 4, tags: ["doc"] },
+    { name: "ChartCube", url: "https://chartcube.alipay.com/guide", category: "create_design", rank: 5 },
+    { name: "ElevenLabs (音)", url: "https://elevenlabs.io/", category: "create_design", rank: 6 },
+    { name: "MiniMax Audio", url: "https://www.minimax.io/audio", category: "create_design", rank: 7 },
+    { name: "Google Sttich", url: "https://stitch.withgoogle.com/", category: "create_design", rank: 8 },
+    { name: "Whisk (FX)", url: "https://labs.google/fx/tools/whisk", category: "create_design", rank: 9 },
+    { name: "Lovart", url: "https://www.lovart.ai/", category: "create_design", rank: 10 },
+    { name: "Google PPT", url: "https://docs.google.com/presentation/", category: "create_design", rank: 11 },
+    { name: "代码变网页", url: "https://www.yourware.so/", category: "create_design", rank: 12 },
+    { name: "DeepSite (HF)", url: "https://huggingface.co/spaces/enzostvs/deepsite", category: "create_design", rank: 13 },
+    { name: "自由画布", url: "https://wenku.baidu.com/board", category: "create_design", rank: 14 },
+
+    // --- 5.1 学术科研 (know_research) - 第一性原理源头 ---
+    { name: "Google Scholar", url: "https://scholar.google.com/", category: "know_research", rank: 1 },
+    { name: "Arxiv Papers", url: "https://arxiv.org/", category: "know_research", rank: 2 },
+    { name: "Web of Science", url: "https://clarivate.com/products/web-of-science/", category: "know_research", rank: 3 },
+    { name: "Scopus", url: "https://www.scopus.com/", category: "know_research", rank: 4 },
+    { name: "IEEE Xplore", url: "https://ieeexplore.ieee.org/", category: "know_research", rank: 5 },
+    { name: "ScienceDirect", url: "https://www.sciencedirect.com/", category: "know_research", rank: 6 },
+    { name: "PubMed", url: "https://pubmed.ncbi.nlm.nih.gov/", category: "know_research", rank: 7 },
+    { name: "AI 搜论文 (iFlow)", url: "https://iflow.cn/", category: "know_research", rank: 8 },
+    { name: "创作论文 (Storm)", url: "https://storm.genie.stanford.edu/", category: "know_research", rank: 9 },
+
+    // --- 5.2 第二大脑 (know_mgmt) - 内化 ---
+    { name: "Notion", url: "https://www.notion.so/", category: "know_mgmt", rank: 1 },
+    { name: "NotebookLM", url: "https://notebooklm.google.com/", category: "know_mgmt", rank: 2 },
+    { name: "飞书云文档", url: "https://fxu5r7nfzg.feishu.cn/", category: "know_mgmt", rank: 3, tags: ["doc"] },
+    { name: "得到AI笔记", url: "https://www.biji.com/note", category: "know_mgmt", rank: 4 },
+
+    // --- 5.3 终身学习 (know_learn) - 技能 ---
+    { name: "得到 APP", url: "https://www.dedao.cn/", category: "know_learn", rank: 1 },
+    { name: "微信读书", url: "https://weread.qq.com/", category: "know_learn", rank: 2 },
+    { name: "混沌大学", url: "https://b.hundun.cn/", category: "know_learn", rank: 3 },
+    { name: "Bilibili", url: "https://www.bilibili.com/", category: "know_learn", rank: 4 },
+    { name: "YouTube", url: "https://www.youtube.com/", category: "know_learn", rank: 5 },
+    { name: "Google Books", url: "https://books.google.com.hk/?hl=zh-CN", category: "know_learn", rank: 6 },
+    { name: "小鹅通", url: "https://xueyuan.xiaoe-tech.com/", category: "know_learn", rank: 7 },
+    { name: "青少年AI素养", url: "https://e.aice.org.cn/", category: "know_learn", rank: 8 },
+    { name: "风变编程", url: "https://www.pypypy.cn/", category: "know_learn", rank: 9 },
+
+    // --- 5.4 参考资料 (know_ref) ---
+    { name: "现代汉语词典", url: "https://cidian.gushici.net/", category: "know_ref", rank: 1 },
+    { name: "字体天下", url: "https://www.fonts.net.cn/", category: "know_ref", rank: 2 },
+
+    // --- 6.1 协同通讯 (tool_collab) ---
+    { name: "Gmail", url: "https://mail.google.com/", category: "tool_collab", rank: 1 },
+    { name: "Outlook", url: "https://outlook.live.com/", category: "tool_collab", rank: 2 },
+    { name: "Slack", url: "https://app.slack.com/", category: "tool_collab", rank: 3 },
+    { name: "公众号文章", url: "https://mp.weixin.qq.com/cgi-bin/home", category: "tool_collab", rank: 4 },
+
+    // --- 6.2 办公与数据 (tool_office) ---
+    { name: "ProcessOn", url: "https://www.processon.com/", category: "tool_office", rank: 1 },
+    { name: "金山文档", url: "https://www.kdocs.cn/", category: "tool_office", rank: 2 },
+    { name: "TableConvert", url: "https://tableconvert.com/", category: "tool_office", rank: 3 },
+    { name: "n8n 自动化", url: "https://app.n8n.cloud/", category: "tool_office", rank: 4 },
+    { name: "WPS 脚本指南", url: "https://365.kdocs.cn/l/cuUFLE0Ufojw", category: "tool_office", rank: 5, tags: ["doc"] },
+    { name: "在线 PDF 转换", url: "https://pdf2000.com/", category: "tool_office", rank: 6 },
+    { name: "闪击 PPT", url: "https://ppt.sankki.com/", category: "tool_office", rank: 7 },
+    { name: "免费抠图", url: "https://pixian.ai/", category: "tool_office", rank: 8 },
+    { name: "问卷网", url: "https://www.wenjuan.com/", category: "tool_office", rank: 9 },
+    { name: "Tushare 数据", url: "https://tushare.pro/", category: "tool_office", rank: 10 },
+    { name: "Cretvalu", url: "https://cretvalu.com/", category: "tool_office", rank: 11 },
+    { name: "Context.ai", url: "https://www.context.ai/", category: "tool_office", rank: 12 },
+    { name: "AIToolX", url: "https://aitoolx.cn/", category: "tool_office", rank: 13 },
+
+    // --- 6.3 网络与账户 (tool_net) ---
+    { name: "Google One", url: "https://one.google.com/", category: "tool_net", rank: 1 },
+    { name: "JustMySocks", url: "https://justmysocks.net/", category: "tool_net", rank: 2, tags: ["vpn"] },
+    { name: "IP 泄露检测", url: "https://ipleak.net/", category: "tool_net", rank: 3 },
+    { name: "Gemini CLI", url: "https://geminicli.com/extensions/", category: "tool_net", rank: 4 },
+    { name: "reCAPTCHA", url: "https://www.google.com/recaptcha/admin", category: "tool_net", rank: 5 },
+    { name: "腾讯在线工具", url: "https://tool.browser.qq.com/", category: "tool_net", rank: 6 },
+    { name: "阳光开奖", url: "https://www.cwl.gov.cn/", category: "tool_net", rank: 7 },
+
+    // --- 6.4 个人发布 (my_works) ---
+    { name: "Markdown 转 Excel", url: "https://alongor666.github.io/Table_Forge/", category: "my_works", rank: 1 },
+    { name: "车险经营分析周报", url: "https://autinsight.web.app/", category: "my_works", rank: 2 },
+    { name: "摩托车成本模型", url: "https://alongor666.github.io/moto_cost/", category: "my_works", rank: 3 },
+    { name: "可续期查询", url: "https://alongor666.github.io/Fee-re/", category: "my_works", rank: 4 },
+    { name: "插混车型可视化", url: "http://127.0.0.1:5501/%E8%BD%A6%E5%9E%8B.html", category: "my_works", rank: 5 },
+    { name: "GenAI 闪卡", url: "https://019a84ee-d564-7826-8aef-953b787e589f.arena.site/", category: "my_works", rank: 6 },
+    { name: "Gemini Proxy", url: "https://gemini-proxy.alongor0512.workers.dev/", category: "my_works", rank: 7 },
+    { name: "ACL4SSR 订阅", url: "https://acl4ssr-sub.github.io/", category: "my_works", rank: 8 },
+    { name: "Google 网站", url: "https://sites.google.com/", category: "my_works", rank: 9 }
+];
+
+createApp({
+    setup() {
+        const allSites = ref([]);
+        const searchQuery = ref("");
+        const currentFilter = ref("all");
+        const showModal = ref(false);
+        const currentTime = ref("");
+        const showSettingsModal = ref(false);
+        const showAnalysisModal = ref(false);
+        const tempApiKey = ref(localStorage.getItem('gemini_api_key') || '');
+        const apiKey = ref(localStorage.getItem('gemini_api_key') || '');
+        const smartInput = ref("");
+        const isProcessing = ref(false);
+        const isAnalyzing = ref(false);
+        const analysisResult = ref("");
+        const newSite = ref({ name: "", url: "", category: "tool_office", rank: 99 });
+
+        const flatCategories = computed(() => CATEGORY_STRUCTURE.flatMap(g => g.items));
+        const groupedCategories = computed(() => CATEGORY_STRUCTURE);
+
+        onMounted(() => {
+            loadSites();
+            updateTime();
+            setInterval(updateTime, 1000);
+        });
+
+        const loadSites = () => {
+            const stored = localStorage.getItem('ahlong_assets_v5_3');
+            if (stored) {
+                const localSites = JSON.parse(stored);
+                const siteMap = new Map();
+                localSites.forEach(s => siteMap.set(s.url, s));
+                PARSED_DATA.forEach(s => {
+                    const existing = siteMap.get(s.url) || {};
+                    siteMap.set(s.url, { ...existing, ...s });
+                });
+                allSites.value = Array.from(siteMap.values());
+            } else {
+                allSites.value = PARSED_DATA;
+                saveSites();
+            }
+        };
+
+        const saveSites = () => localStorage.setItem('ahlong_assets_v5_3', JSON.stringify(allSites.value));
+        const updateTime = () => currentTime.value = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
+        const getCountByCategory = (catId) => allSites.value.filter(s => s.category === catId).length;
+        const getCategoryColor = (catId) => flatCategories.value.find(c => c.id === catId)?.color || '#ccc';
+
+        const displaySites = computed(() => {
+            let result = allSites.value;
+            const q = searchQuery.value.toLowerCase();
+            if (q) {
+                result = result.filter(s => s.name.toLowerCase().includes(q) || s.url.toLowerCase().includes(q));
+            } else if (currentFilter.value !== 'all') {
+                result = result.filter(s => s.category === currentFilter.value);
+            }
+            return result.sort((a, b) => {
+                const rankA = a.rank || 99;
+                const rankB = b.rank || 99;
+                if (rankA !== rankB) return rankA - rankB;
+                return a.name.localeCompare(b.name, 'zh-CN');
+            });
+        });
+
+        const displaySitesGrouped = computed(() => {
+            if (currentFilter.value !== 'all' || searchQuery.value) return {};
+            const groups = {};
+            CATEGORY_STRUCTURE.forEach(group => {
+                group.items.forEach(cat => {
+                    const items = allSites.value.filter(s => s.category === cat.id);
+                    if (items.length > 0) {
+                        items.sort((a, b) => (a.rank || 99) - (b.rank || 99));
+                        groups[cat.name] = items;
+                    }
+                });
+            });
+            return groups;
+        });
+
+        const getFavicon = (url) => {
+            try { return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`; } 
+            catch { return 'https://via.placeholder.com/64?text=WEB'; }
+        };
+        const handleImageError = (e) => e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z'/%3E%3C/svg%3E";
+        const getDomain = (url) => { try { return new URL(url).hostname.replace('www.', ''); } catch { return url; } };
+        const getCurrentPageTitle = computed(() => {
+            if (currentFilter.value === 'all') return '全局资产全景';
+            return flatCategories.value.find(c => c.id === currentFilter.value)?.name || 'Asset';
+        });
+
+        const visitSite = (s) => window.open(s.url, '_blank');
+        const deleteSite = (s) => { if(confirm(`删除 ${s.name}?`)) { allSites.value = allSites.value.filter(i => i !== s); saveSites(); }};
+        
+        const openAddModal = () => { showModal.value = true; };
+        const closeModal = () => showModal.value = false;
+        const addSite = () => {
+            if(!newSite.value.name) return;
+            allSites.value.push({...newSite.value, rank: 99}); 
+            saveSites(); closeModal();
+        };
+        const openSettings = () => { tempApiKey.value = apiKey.value; showSettingsModal.value = true; };
+        const saveSettings = () => { apiKey.value = tempApiKey.value; localStorage.setItem('gemini_api_key', apiKey.value); showSettingsModal.value = false; };
+        
+        const callGemini = async (prompt) => {
+            if (!apiKey.value) { alert("请先配置 API Key"); openSettings(); throw new Error("No Key"); }
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey.value}`;
+            const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+            if (!res.ok) throw new Error("API Error");
+            return (await res.json()).candidates[0].content.parts[0].text;
+        };
+
+        const smartParse = async () => {
+            if (!smartInput.value) return;
+            isProcessing.value = true;
+            try {
+                const cats = JSON.stringify(flatCategories.value.map(c => ({id: c.id, name: c.name})));
+                const prompt = `Extract name and url from text: "${smartInput.value}". Map to category in ${cats}. Return JSON: {"name": "", "url": "", "category": ""}`;
+                const text = await callGemini(prompt);
+                const json = JSON.parse(text.replace(/```json|```/g, '').trim());
+                newSite.value = { ...json, rank: 99 };
+            } catch (e) { console.error(e); alert("识别失败"); } finally { isProcessing.value = false; }
+        };
+
+        const openAnalysisModal = () => showAnalysisModal.value = true;
+        const closeAnalysisModal = () => showAnalysisModal.value = false;
+        const analyzeAssets = async () => {
+            isAnalyzing.value = true;
+            try {
+                const list = allSites.value.map(s => `${s.name}(${s.category})`).join(", ");
+                const res = await callGemini(`分析我的资产列表：[${list}]。1. 角色画像。2. MECE缺失分析。3. 3个推荐工具。Markdown输出。`);
+                analysisResult.value = res;
+            } catch (e) { analysisResult.value = "分析失败"; } finally { isAnalyzing.value = false; }
+        };
+        const renderMarkdown = (t) => marked.parse(t);
+
+        return {
+            allSites, groupedCategories, flatCategories, currentFilter, displaySites, displaySitesGrouped,
+            searchQuery, currentTime, showModal, showSettingsModal, showAnalysisModal,
+            tempApiKey, smartInput, isProcessing, isAnalyzing, analysisResult, newSite, getCurrentPageTitle,
+            openAddModal, closeModal, addSite, openSettings, saveSettings, openAnalysisModal, closeAnalysisModal,
+            smartParse, analyzeAssets, renderMarkdown, getFavicon, handleImageError, getDomain,
+            visitSite, deleteSite, getCountByCategory, getCategoryColor
+        };
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
