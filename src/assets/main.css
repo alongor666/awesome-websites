@@ -1,0 +1,153 @@
+/* macOS 风格样式表 - 生产环境优化版本 */
+
+/* 重置和基础样式 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    /* macOS 颜色系统 */
+    --macos-bg: #f5f5f7;
+    --macos-sidebar-bg: rgba(255, 255, 255, 0.8);
+    --macos-card-bg: rgba(255, 255, 255, 0.9);
+    --macos-text-primary: #1d1d1f;
+    --macos-text-secondary: #6e6e73;
+    --macos-accent: #007aff;
+    --macos-hover: rgba(0, 122, 255, 0.1);
+    --macos-border: rgba(0, 0, 0, 0.1);
+    --macos-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    --macos-blur: blur(20px);
+
+    /* 窗口控制按钮 */
+    --macos-red: #ff5f57;
+    --macos-yellow: #ffbd2e;
+    --macos-green: #28ca42;
+
+    /* 语义化颜色 */
+    --color-primary: #007aff;
+    --color-success: #34c759;
+    --color-warning: #ff9500;
+    --color-danger: #ff3b30;
+    --color-info: #5ac8fa;
+
+    /* 灰度颜色 */
+    --color-gray-50: #f9fafb;
+    --color-gray-100: #f3f4f6;
+    --color-gray-200: #e5e7eb;
+    --color-gray-300: #d1d5db;
+    --color-gray-400: #9ca3af;
+    --color-gray-500: #6b7280;
+    --color-gray-600: #4b5563;
+    --color-gray-700: #374151;
+    --color-gray-800: #1f2937;
+    --color-gray-900: #111827;
+}
+
+body {
+    background: linear-gradient(180deg, #f5f5f7 0%, #e8e8ed 100%);
+    color: var(--macos-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* 自定义滚动条 */
+.custom-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+    background-clip: content-box;
+}
+
+/* 布局工具类 */
+.h-screen { height: 100vh; }
+.w-full { width: 100%; }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-1 { flex: 1 1 0%; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-4 { gap: 1rem; }
+.overflow-hidden { overflow: hidden; }
+.overflow-y-auto { overflow-y: auto; }
+.relative { position: relative; }
+.text-sm { font-size: 14px; }
+.font-semibold { font-weight: 600; }
+.text-center { text-align: center; }
+
+/* macOS 风格卡片 */
+.macos-card {
+    background: var(--macos-card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--macos-border);
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.macos-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--macos-shadow);
+    border-color: rgba(0, 122, 255, 0.2);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+/* 动画优化 */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* 暗色主题 */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --macos-bg: #1c1c1e;
+        --macos-sidebar-bg: rgba(28, 28, 30, 0.8);
+        --macos-card-bg: rgba(28, 28, 30, 0.9);
+        --macos-text-primary: #f5f5f7;
+        --macos-text-secondary: #98989d;
+        --macos-border: rgba(255, 255, 255, 0.1);
+    }
+
+    body {
+        background: linear-gradient(180deg, #1c1c1e 0%, #2c2c2e 100%);
+    }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+    :root {
+        --macos-border: rgba(0, 0, 0, 0.5);
+    }
+
+    .macos-card {
+        border-width: 2px;
+    }
+}
