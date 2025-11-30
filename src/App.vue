@@ -1,14 +1,14 @@
 <template>
   <div id="app" class="h-screen flex overflow-hidden text-sm">
     <!-- 加载状态 -->
-    <div v-if="appStore.isLoading" class="loading-screen">
+    <div v-if="assetsStore.loading" class="loading-screen">
       <div class="loading-content">
         <div class="loading-logo">
           <i class="fa-solid fa-compass-drafting"></i>
         </div>
         <div class="loading-text">
           <h1>阿龙的数字化作战中心</h1>
-          <p>正在初始化...</p>
+          <p>正在加载书签...</p>
         </div>
         <div class="loading-spinner">
           <i class="fa-solid fa-circle-notch fa-spin"></i>
@@ -31,7 +31,7 @@
           <!-- 全局视图：按业务板块分组 -->
           <div v-if="currentFilter === 'all'" class="global-view">
             <div
-              v-for="(groupData, groupName) in displaySitesGrouped"
+              v-for="(groupData, groupName) in displayBookmarksGrouped"
               :key="groupName"
               class="mb-10"
             >
@@ -43,9 +43,9 @@
 
               <div class="assets-grid">
                 <AssetCard
-                  v-for="site in groupData"
-                  :key="site.id"
-                  :asset="site"
+                  v-for="bookmark in groupData"
+                  :key="bookmark.id"
+                  :asset="bookmark"
                   @visit="handleVisit"
                   @edit="handleEdit"
                   @delete="handleDelete"
@@ -56,21 +56,19 @@
 
           <!-- 分类视图 -->
           <div v-else class="category-view">
-            <!-- 空状态 -->
-            <div v-if="displaySites.length === 0" class="empty-state">
+            <div v-if="displayBookmarks.length === 0" class="empty-state">
               <div class="empty-icon">
                 <i class="fa-solid fa-inbox"></i>
               </div>
-              <p class="empty-text">暂无相关资产</p>
-              <p class="empty-subtitle">尝试添加新资产或调整筛选条件</p>
+              <div class="empty-text">暂无书签</div>
+              <div class="empty-subtitle">尝试切换分类或搜索关键词</div>
             </div>
 
-            <!-- 资产网格 -->
             <div v-else class="assets-grid">
               <AssetCard
-                v-for="site in displaySites"
-                :key="site.id"
-                :asset="site"
+                v-for="bookmark in displayBookmarks"
+                :key="bookmark.id"
+                :asset="bookmark"
                 @visit="handleVisit"
                 @edit="handleEdit"
                 @delete="handleDelete"
@@ -79,37 +77,33 @@
           </div>
         </div>
       </main>
-
-      <!-- 通知容器 -->
-      <div class="notification-container">
-        <div
-          v-for="notification in notifications"
-          :key="notification.id"
-          class="notification-toast"
-          :class="[
-            `notification-${notification.type}`,
-            { 'notification-enter': !notification.read }
-          ]"
-          @click="markAsRead(notification.id)"
-        >
-          <div class="notification-icon">
-            <i :class="getNotificationIcon(notification.type)"></i>
-          </div>
-          <div class="notification-content">
-            <div class="notification-title">{{ notification.title }}</div>
-            <div v-if="notification.message" class="notification-message">
-              {{ notification.message }}
-            </div>
-          </div>
-          <button
-            class="notification-close"
-            @click="removeNotification(notification.id)"
-          >
-            <i class="fa-solid fa-times"></i>
-          </button>
-        </div>
-      </div>
     </template>
+
+    <!-- 通知容器 -->
+    <div class="notification-container">
+      <div
+        v-for="notification in notifications"
+        :key="notification.id"
+        :class="[
+          'notification-toast',
+          `notification-${notification.type}`
+        ]"
+      >
+        <div class="notification-icon">
+          <i :class="getNotificationIcon(notification.type)"></i>
+        </div>
+        <div class="notification-content">
+          <div class="notification-title">{{ notification.title }}</div>
+          <div class="notification-message">{{ notification.message }}</div>
+        </div>
+        <button
+          class="notification-close"
+          @click="removeNotification(notification.id)"
+        >
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -121,68 +115,38 @@ import { CATEGORY_STRUCTURE } from '@data/categories'
 import Header from '@components/Header.vue'
 import Sidebar from '@components/Sidebar.vue'
 import AssetCard from '@components/AssetCard.vue'
-import type { Asset } from '@types/index'
+import type { Bookmark } from '@utils/bookmarkImporter'
 
 const appStore = useAppStore()
 const assetsStore = useAssetsStore()
 
 // 计算属性
-const currentFilter = computed(() => appStore.currentFilter)
+const currentFilter = computed(() => assetsStore.currentFilter)
 const notifications = computed(() => appStore.notifications.slice(0, 5))
 
-const displaySites = computed(() => {
-  let result = assetsStore.assets.filter(asset => !asset.archived)
-
-  // 应用搜索过滤
-  if (appStore.searchQuery) {
-    result = assetsStore.searchAssets(appStore.searchQuery)
-  } else if (currentFilter.value !== 'all') {
-    result = assetsStore.getAssetsByCategory(currentFilter.value as any)
-  }
-
-  // 排序：按 rank 优先，然后按名称
-  return result.sort((a, b) => {
-    const rankA = a.rank || 99
-    const rankB = b.rank || 99
-    if (rankA !== rankB) return rankA - rankB
-    return a.name.localeCompare(b.name, 'zh-CN')
-  })
+const displayBookmarks = computed(() => {
+  return assetsStore.displayBookmarks
 })
 
-const displaySitesGrouped = computed(() => {
-  if (currentFilter.value !== 'all' || appStore.searchQuery) return {}
-
-  const groups: Record<string, Asset[]> = {}
-
-  CATEGORY_STRUCTURE.forEach(group => {
-    group.items.forEach(category => {
-      const items = assetsStore.getAssetsByCategory(category.id).filter(asset => !asset.archived)
-      if (items.length > 0) {
-        const sortedItems = items.sort((a, b) => (a.rank || 99) - (b.rank || 99))
-        groups[category.name] = sortedItems
-      }
-    })
-  })
-
-  return groups
+const displayBookmarksGrouped = computed(() => {
+  return assetsStore.displayBookmarksGrouped
 })
 
 // 方法
-const handleVisit = (asset: Asset) => {
-  window.open(asset.url, '_blank')
-  assetsStore.recordVisit(asset.id)
-  appStore.showSuccess('访问成功', `正在打开 ${asset.name}`)
+const handleVisit = (bookmark: Bookmark) => {
+  assetsStore.visitBookmark(bookmark)
+  appStore.showSuccess('访问成功', `正在打开 ${bookmark.title}`)
 }
 
-const handleEdit = (asset: Asset) => {
-  appStore.showInfo('编辑资产', `正在编辑 ${asset.name}`)
+const handleEdit = (bookmark: Bookmark) => {
+  appStore.showInfo('编辑书签', `正在编辑 ${bookmark.title}`)
   // TODO: 实现编辑功能
 }
 
-const handleDelete = (asset: Asset) => {
-  if (confirm(`确定要删除"${asset.name}"吗？`)) {
-    assetsStore.deleteAsset(asset.id)
-    appStore.showSuccess('删除成功', `${asset.name} 已删除`)
+const handleDelete = (bookmark: Bookmark) => {
+  if (confirm(`确定要删除"${bookmark.title}"吗？`)) {
+    assetsStore.deleteBookmark(bookmark.id)
+    appStore.showSuccess('删除成功', `${bookmark.title} 已删除`)
   }
 }
 
@@ -210,11 +174,11 @@ onMounted(async () => {
     // 初始化应用
     await appStore.initializeApp()
 
-    // 加载资产数据
-    await assetsStore.loadAssets()
+    // 加载书签数据
+    await assetsStore.init()
 
     console.log('✅ 应用初始化完成')
-    console.log(`📊 加载了 ${assetsStore.assetsCount} 个资产`)
+    console.log(`📊 加载了 ${assetsStore.bookmarksCount} 个书签`)
 
   } catch (error) {
     console.error('❌ 应用初始化失败:', error)
