@@ -1,34 +1,60 @@
-# 忽略系统文件
+# 系统文件
 .DS_Store
 Thumbs.db
 
-# 忽略编辑器和IDE文件
+# 编辑器和IDE文件
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# 忽略日志文件
+# 日志文件
 *.log
 logs/
 
-# 忽略临时文件
+# 临时文件
 *.tmp
 *.temp
 
-# 忽略缓存文件
+# 缓存文件
 .cache/
 node_modules/
 
-# 忽略Python相关
+# 环境文件
+.env
+.env.local
+.env.*.local
+
+# 构建输出
+dist/
+build/
+
+# 测试覆盖率
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Python 相关
 __pycache__/
 *.py[cod]
 *$py.class
-.env
 .venv
 
-# 忽略隐私文件
+# 隐私文件
 *.key
 *.pem
 config.json
+
+# 开发工具
+.genkit/
+.spec-workflow/
+
+# 旧版本文件
+*.html.old
+*.md.bak
+
+# 书签数据文件（已导入到TypeScript）
+bookmarks_*.html
+*.md.bak
